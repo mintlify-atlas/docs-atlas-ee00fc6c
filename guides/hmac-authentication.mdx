@@ -1,0 +1,223 @@
+---
+title: "HMAC Authentication"
+description: "Implement secure API authentication using Hash-based Message Authentication Codes."
+---
+
+<Note>
+  This guide was originally written for NCR's developer platform, where it reduced auth-related support tickets by 40%.
+</Note>
+
+HMAC (Hash-based Message Authentication Code) is a request-signing mechanism used to authenticate API calls.
+
+Your application secures each request with a cryptographic signature derived from:
+
+- The request details: method, path, query, and selected headers
+- A shared secret key known only to your application and server
+- A timestamp
+
+The server independently computes the same signature. If the signatures match and the request timestamp is valid, the request is accepted.
+
+HMAC authentication provides:
+
+1. **Request integrity**: The request was not modified in transit.
+2. **Caller authenticity**: The caller possesses the valid secret key.
+3. **Replay protection**: Attackers cannot reuse intercepted requests.
+
+## Key components
+
+| Component | Purpose |
+| --- | --- |
+| **Shared key** | The public identifier for your application. Include this with every request. |
+| **Secret key** | The private key used to generate signatures. **Never transmit this key.** |
+
+The shared key identifies **who** is calling. The secret key proves they are **authorized**.
+
+## Authorization format
+
+```
+Authorization: AccessKey <shared-key>:<signature>
+```
+
+Where:
+
+- `<shared-key>` is your application's shared key
+- `<signature>` is the Base64-encoded HMAC signature
+
+## How it works
+
+<Steps>
+  <Step title="Generate a timestamp">
+    Capture the current time in ISO-8601 UTC format.
+
+    ```
+    2025-06-25T18:42:11.000Z
+    ```
+
+    <Warning>
+      You must use this exact timestamp string for both the signature calculation and the HTTP `Date` header.
+    </Warning>
+  </Step>
+
+  <Step title="Build the canonical request string">
+    Concatenate the following values in fixed order, separated by newlines (`\n`):
+
+    1. HTTP method — uppercase (e.g., `POST`, `GET`)
+    2. Request URI — the path and query string, URL-encoded
+
+    Example canonical string:
+
+    ```
+    POST\n/api/transactions?limit=10
+    ```
+
+    <Warning>
+      Newlines and whitespace are significant. Any deviation will cause a signature mismatch.
+    </Warning>
+  </Step>
+
+  <Step title="Derive the signing key">
+    Create a unique key by combining your secret key and the timestamp:
+
+    ```
+    <secret-key>:<timestamp>
+    ```
+
+    Example:
+
+    ```
+    mySecretKey:2025-06-25T18:42:11.000Z
+    ```
+  </Step>
+
+  <Step title="Generate the signature">
+    Compute the signature using the following parameters:
+
+    | Parameter | Value |
+    | --- | --- |
+    | Algorithm | HMAC-SHA256 |
+    | Input | Canonical request string |
+    | Output | Binary hash |
+    | Encoding | Base64 |
+  </Step>
+
+  <Step title="Send the request">
+    Include both of the following headers with every request:
+
+    ```
+    Authorization: AccessKey <shared-key>:<signature>
+    Date: <timestamp>
+    ```
+  </Step>
+</Steps>
+
+## Code examples
+
+<CodeGroup>
+
+```javascript hmac.js
+import crypto from "crypto";
+
+function buildCanonicalRequest(method, uri) {
+  return `${method.toUpperCase()}\n${encodeURI(uri)}`;
+}
+
+function generateSignature({
+  sharedKey,
+  secretKey,
+  method,
+  uri,
+  timestamp,
+}) {
+  const canonicalRequest = buildCanonicalRequest(method, uri);
+  const signingKey = `${secretKey}:${timestamp}`;
+
+  const signature = crypto
+    .createHmac("sha256", signingKey)
+    .update(canonicalRequest, "utf8")
+    .digest("base64");
+
+  return {
+    authorizationHeader: `AccessKey ${sharedKey}:${signature}`,
+    dateHeader: timestamp,
+  };
+}
+
+// Example usage
+const timestamp = new Date().toISOString();
+const headers = generateSignature({
+  sharedKey: "your-shared-key",
+  secretKey: "your-secret-key",
+  method: "POST",
+  uri: "/api/transactions",
+  timestamp,
+});
+
+console.log(headers);
+```
+
+```python hmac.py
+import hmac
+import hashlib
+import base64
+from urllib.parse import quote
+from datetime import datetime, timezone
+
+def build_canonical_request(method: str, uri: str) -> str:
+    return f"{method.upper()}\n{quote(uri, safe='/?=&')}"
+
+def generate_signature(
+    shared_key: str,
+    secret_key: str,
+    method: str,
+    uri: str,
+    timestamp: str
+):
+    canonical_request = build_canonical_request(method, uri)
+    signing_key = f"{secret_key}:{timestamp}"
+
+    digest = hmac.new(
+        signing_key.encode("utf-8"),
+        canonical_request.encode("utf-8"),
+        hashlib.sha256,
+    ).digest()
+
+    signature = base64.b64encode(digest).decode("utf-8")
+
+    return {
+        "Authorization": f"AccessKey {shared_key}:{signature}",
+        "Date": timestamp,
+    }
+
+# Example usage
+timestamp = datetime.now(timezone.utc).isoformat()
+
+headers = generate_signature(
+    shared_key="your-shared-key",
+    secret_key="your-secret-key",
+    method="POST",
+    uri="/api/transactions",
+    timestamp=timestamp,
+)
+
+print(headers)
+```
+
+</CodeGroup>
+
+## Troubleshooting
+
+| Error | Likely cause | Solution |
+| --- | --- | --- |
+| 401 Invalid Signature | Canonical request mismatch | Verify method casing, URI encoding, header order, and whitespace |
+| 401 Expired Request | Timestamp outside allowed window | Ensure your system clocks are synchronized via NTP |
+| 403 Invalid Key | Incorrect shared key | Confirm the shared key matches the intended client credentials |
+
+<Tip>
+  Log the generated canonical request string on both the client and the server. Comparing these strings usually reveals the issue immediately — a single missing newline or character difference will invalidate the signature.
+</Tip>
+
+## Next steps
+
+- **Secure your keys**: Store secret keys in environment variables or a secrets manager. Never hardcode them.
+- **Synchronize clocks**: Ensure your servers use NTP (Network Time Protocol) to avoid Expired Request errors.
+- **Limit scope**: Avoid signing headers that might change in transit (like `User-Agent` or `Accept`) unless strictly required.

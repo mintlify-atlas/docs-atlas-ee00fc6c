@@ -1,0 +1,49 @@
+---
+title: "The Long View"
+description: "A year-at-a-glance calendar app. No signups, no servers."
+---
+
+You've seen those $50 "Big Calendars" on TikTok — giant wall posters that show your whole year at a glance. The Long View is a digital version that's free, portable, and doesn't require an account.
+
+**Stack:** React, TypeScript, Tailwind v4, shadcn, dnd-kit
+
+<CardGroup cols={2}>
+  <Card title="Live site" icon="arrow-up-right-from-square" href="https://thelongview.dev">
+    thelongview.dev
+  </Card>
+  <Card title="Source code" icon="github" href="https://github.com/Taylor-McNeil/the-longview">
+    Taylor-McNeil/the-longview
+  </Card>
+</CardGroup>
+
+## The core design decision
+
+**No backend.** Everything lives in `localStorage`. No auth, no database, no server costs.
+
+<Tip>
+  This also means no sync across devices. The trade-off is explicit: users own their data completely. JSON export and import are built in so nothing is locked to a single browser.
+</Tip>
+
+## Interesting problems
+
+### Lane calculation
+
+When events overlap on the same day, they need to stack vertically without colliding. The naive approach is O(n²) — compare every event to every other event.
+
+For a personal calendar with fewer than 100 events, O(n²) is fine. The decision was to keep it simple rather than optimize prematurely. The problem doesn't warrant the complexity.
+
+### Multi-day rendering
+
+A 14-day vacation needs to render as one draggable bar spanning multiple cells, not 14 separate blocks.
+
+CSS Grid handles the layout. The tricky part is calculating which cells an event occupies when months have different lengths. February 28th plus 5 days is March 5th, not February 33rd. Getting date arithmetic right across month and year boundaries is the unglamorous work that makes drag-and-drop feel correct.
+
+### UI layout
+
+The calendar grid came together quickly. The header and toolbar did not.
+
+Zoom controls, year navigation, theme picker, and import/export all need to live somewhere. The current layout works, but it went through about a dozen iterations before landing.
+
+<Note>
+  If this got a second pass, the likely direction would be a collapsible settings panel or a command palette — moving controls out of persistent view rather than trying to arrange them all at once.
+</Note>

@@ -1,0 +1,108 @@
+---
+title: "&mpersand"
+description: "A creative workspace for fiction writers that reveals story structure instead of managing documents."
+---
+
+<Info>
+  &mpersand is currently in active development. Taylor is building it solo while freelancing as a technical writer. Follow the devlog at [aampersand.com](https://aampersand.com).
+</Info>
+
+aampersand (stylized as **&mpersand**) is a writing tool for fiction writers who have outgrown their documents. It's built for the writer who is 44 chapters in, juggling a dozen plotlines, and no longer certain what they've already written.
+
+The core idea: **the story is the truth. The document is just one expression of it.**
+
+Most writing tools treat the document as the source of reality. aampersand inverts this. The story lives in the writer's head; the tool's job is to surface its structure — plotlines, character threads, narrative beats — so the writer can see it clearly without having to hold all of it at once.
+
+## Key features
+
+<CardGroup cols={2}>
+  <Card title="Investigation boards" icon="chart-network">
+    Visual boards for tracking plotlines, character arcs, and narrative threads across a long manuscript.
+  </Card>
+  <Card title="Beats system" icon="bookmark">
+    Structural claims anchored to your text. Not annotations — database records that survive edits, track drift, and catch deletions before they're gone.
+  </Card>
+  <Card title="Two-pane layout" icon="layout-panel-left">
+    Left pane is always your chapter. Right pane is always support. Deliberately constrained so you're never managing layout when you should be writing.
+  </Card>
+  <Card title="Modular wiki" icon="book-open">
+    Character profiles, world-building, and research, all cross-referenced and available in the support pane without leaving your chapter.
+  </Card>
+</CardGroup>
+
+## The Beats system
+
+A Beat is a claim about your narrative. Not a comment, not a highlight — a database record that says:
+
+> "Right here, the reader learns X."
+
+> "Right here, the love interest has dug himself into a hole."
+
+Unlike annotations in Word or Google Docs that are attached to text and die when that text changes, Beats are independent records. The text can drift, the text can disappear — the Beat survives and tells you about it.
+
+### Beat states
+
+| State | Meaning |
+|---|---|
+| **Healthy** | Beat is anchored to text and the text still matches. |
+| **Stale** | The anchor exists but the text inside has changed. The system flags it with a gentle note. |
+| **Ghost** | The anchored text was deleted. The Beat is caught before it falls into the void — metadata is preserved, document location is stripped, and it surfaces in the Ghost Tray for the writer to re-anchor. |
+
+### Beat lifecycle
+
+```plaintext
+HEALTHY → (text edited) → STALE → (text deleted) → GHOST → (writer re-anchors) → HEALTHY
+```
+
+The Ghost Tray is where orphaned Beats wait. The writer sees what they had, decides whether it still belongs, and re-anchors it to new text — or discards it intentionally.
+
+## Design evolution: from multi-pane to two-pane
+
+The first version of aampersand had a VS Code-inspired multi-pane layout. Taylor is a developer who loves VS Code, and the surface-level problem looked similar: navigate a large body of interconnected files.
+
+It didn't work.
+
+> Interface patterns don't port across domains — even when the surface-level problem looks the same.
+
+The breakdown came from a fundamental difference in how developers and writers navigate:
+
+| | Developers | Writers |
+|---|---|---|
+| **Navigate by** | File location | Narrative position |
+| **Mental model** | The bug could be anywhere | The story is in my head |
+| **Need to see** | Everything, simultaneously | Less — context on demand |
+| **Overhead risk** | Missing a relevant file | Managing the layout itself |
+
+Multi-pane gave writers cognitive management overhead instead of creative flow. The current design is deliberately constrained to two panes:
+
+- **Left pane** — Always the chapter. The unit of work, where you write.
+- **Right pane** — Always support. Reference material, wiki slices, notes, timeline, search results.
+
+The support pane *informs*. When you need to *create* or *edit* something substantial, you leave the writing view. The constraint is a feature.
+
+## Technical details
+
+**Stack:** TypeScript, React, TipTap, Dexie (IndexedDB), PostgreSQL
+
+### The undo paradox
+
+Beats exist in two places simultaneously: inside the TipTap editor as highlighted markup, and inside Dexie as structural records. This creates a conflict.
+
+TipTap has an undo stack. Dexie does not.
+
+If a structural action — re-anchoring a Ghost Beat, deduplicating marks, cleaning up orphans — gets added to the undo stack, a writer's `Cmd+Z` can corrupt the relationship between the editor and the database. The editor reverts; the database doesn't.
+
+The fix: pass `addToHistory: false` when applying beat marks from structural actions. The editor is told this isn't a drafting action — don't put it on the undo stack. Drafting actions (the writer typing and selecting) behave normally. Structural actions are invisible to undo.
+
+## Devlog
+
+aampersand has a public devlog at [aampersand.com](https://aampersand.com) where Taylor writes about design and technical decisions as the project evolves.
+
+Published posts:
+
+- **"A Siren's Song"** (Jan 2026) — The design evolution from VS Code-inspired multi-pane to the constrained two-pane layout. Why developer interface patterns failed for writers, and what replaced them.
+- **"Peering into Lethe"** (Feb 2026) — The Beats system in depth. How aampersand prevents narrative details from falling into the void, and the technical challenge of keeping two representations of the same data in sync.
+
+<Note>
+  The devlog posts are design companion pieces — longer explorations of the thinking behind specific decisions. They're worth reading alongside this overview if you want the reasoning, not just the result.
+</Note>

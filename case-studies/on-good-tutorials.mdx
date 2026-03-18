@@ -1,0 +1,184 @@
+---
+title: "On Good Tutorials"
+description: "Building a multi-model evaluation tool and discovering why measuring 'good' is harder than it sounds."
+---
+
+<Warning>
+  Before you grab your pitchfork and come after me about writing better prompts (deterministic): 1. A tool is only as useful as the people who use it. Not everyone is a prompt warrior. 2. The problems revealed below would still exist with a perfect prompt. 3. The takeaway is not about the prompts — it's about how you teach and who you are teaching.
+</Warning>
+
+I built a tool to measure tutorial quality. The tool worked. The measurement didn't — or at least, not the way I expected.
+
+Here's what I found.
+
+## The tool
+
+**DevRel Playground** lets you send a prompt to multiple models at once, stream their responses side-by-side, and then run an evaluation pass that scores each response against a rubric you define.
+
+I built it because I was tired of copy-pasting between ChatGPT and Claude. It turned into something more interesting than a tab-saver.
+
+**Stack:** Next.js 15, React 19, TypeScript, Mantine UI, OpenAI, Anthropic, HuggingFace, react-pdf
+
+## Defining good
+
+The tool supports different content types. Each needed its own rubric — a set of weighted criteria and a checklist that an evaluation model could apply.
+
+<AccordionGroup>
+  <Accordion title="Tutorial writer">
+    **Weights:** Clarity 30%, Comprehensiveness 30%, Step-by-step 30%, Efficiency 10%
+
+    **Checklist:**
+    - Clear learning objectives
+    - Prerequisites mentioned upfront
+    - Step-by-step instructions
+    - Screenshots or visual aids
+    - Troubleshooting tips
+    - Next steps suggested
+    - Hands-on exercises
+  </Accordion>
+
+  <Accordion title="Code examples">
+    **Weights:** Code Quality 80%, Clarity 10%, Comprehensiveness 5%, Efficiency 5%
+
+    **Checklist:**
+    - Produces correct output
+    - Compiles without errors
+    - Handles edge cases
+    - Best practices shown
+    - Comments explain concepts
+    - Error handling included
+    - Dependencies specified
+    - Real-world use cases
+  </Accordion>
+
+  <Accordion title="Error messages">
+    **Weights:** Clarity 50%, Helpfulness 30%, Comprehensiveness 10%, Efficiency 10%
+
+    **Checklist:**
+    - Root cause explained
+    - Multiple solutions offered
+    - Step-by-step resolution
+    - Prevention tips
+    - Documentation links
+    - Context about the error
+    - Skill levels addressed
+  </Accordion>
+
+  <Accordion title="API documentation">
+    **Weights:** Comprehensiveness 40%, Code Quality 30%, Clarity 20%, Efficiency 10%
+
+    **Checklist:**
+    - Auth methods explained
+    - Error codes covered
+    - Rate limits mentioned
+    - Request/response format documented
+    - Multi-language examples
+    - Endpoints documented
+    - Parameters specified
+  </Accordion>
+
+  <Accordion title="Community Q&A">
+    **Weights:** Comprehensiveness 40%, Clarity 30%, Code Quality 20%, Efficiency 10%
+
+    **Checklist:**
+    - Question fully addressed
+    - Multiple approaches offered
+    - Relevant code examples
+    - Best practices highlighted
+    - Common pitfalls covered
+    - Additional resources linked
+    - Follow-ups anticipated
+  </Accordion>
+
+  <Accordion title="General purpose">
+    **Weights:** All criteria equally weighted at 25%
+
+    **Checklist:**
+    - Addresses core question
+    - Actionable information provided
+    - Appropriate tone
+    - Relevant examples included
+    - Logical structure
+  </Accordion>
+</AccordionGroup>
+
+## Multiple experiments
+
+Prompt used across all runs:
+
+```text
+Write a step-by-step tutorial for Nuxt aimed at beginner developers for connecting
+their frontend to Neon. Include prerequisites, clear learning objectives, hands-on
+exercises, and troubleshooting tips.
+```
+
+**Run 1**
+
+| Model | Score | Criteria met |
+|:--|:--:|:--:|
+| Claude Sonnet 4 | 88.5 | 6/7 |
+| Kimi-K2-Instruct | 87.5 | 6/7 |
+| GPT-5 | 87.5 | 6/7 |
+
+**Run 2** — same prompt, same models
+
+| Model | Score | Criteria met |
+|:--|:--:|:--:|
+| Claude Sonnet 4 | 85.3 | 6/7 |
+| Kimi-K2-Instruct | 80.0 | 5/7 |
+| GPT-5 | 91.3 | 6/7 |
+
+In Run 1, the spread between highest and lowest score was 1 point. In Run 2, it was 11 points. The winner changed. The measurement isn't stable.
+
+## What numbers can't tell you
+
+When I actually read the three tutorials — not skimmed them — they turned out to be written for entirely different people.
+
+| | Kimi-K2-Instruct | GPT-5 | Claude Sonnet 4 |
+|---|---|---|---|
+| **Driver** | `@neondatabase/serverless` | `@neondatabase/serverless` | Prisma ORM |
+| **ORM** | No ORM (suggests Drizzle later) | Reusable db helper with caching | Full relational model |
+| **Scope** | 30-minute lean tutorial | Full CRUD implementation | 18-page deep dive |
+| **Extras** | Production checklist | Structured exercises | Prisma Studio, Tailwind |
+| **Deployment** | Assumes Vercel | Architecture overview | Users + Posts schema |
+| **Implicit audience** | "Here's how a senior dev would set this up." | "Here's a solid foundation with room to grow." | "Let me show you how all the pieces connect." |
+
+The scores couldn't see any of that. A checklist item like "step-by-step instructions provided" has the same value whether the steps are calibrated to a complete beginner or a developer who already knows what a connection pool is.
+
+## My assumptions are the data
+
+There are three layers to the measurement problem.
+
+<AccordionGroup>
+  <Accordion title="Layer 1: The rubrics">
+    I wrote the checklists and set the weights. The evaluation model judges responses against my definition of good. The models being evaluated have no idea what that definition is — they're answering a prompt, not a rubric.
+
+    The rubric reflects my assumptions about what a good tutorial contains. Those assumptions are reasonable. They're also mine.
+  </Accordion>
+
+  <Accordion title="Layer 2: What the rubrics cannot see">
+    Rubrics have blind spots. The checklist measures structure, not teaching.
+
+    A concrete example: the [Tic Tac Toe tutorial](/tutorials/java-game-dev) I wrote reached 75,000+ developers. It uses verbose `switch` statements rather than coordinate math — `case 5: gameBoard[1][2]` instead of `(position - 1) / 3`. That's a deliberate choice. A beginner can read the verbose version and immediately understand what's happening. The compact version requires working backwards from the math.
+
+    "Step-by-step instructions provided" would score both versions the same. The checklist can't see that one of those steps is calibrated to where the learner actually is.
+  </Accordion>
+
+  <Accordion title="Layer 3: The judge">
+    Even with a perfect rubric, asking an LLM to apply it isn't stable. The Run 1 vs. Run 2 results are the evidence: same inputs, different scores, different winner on different days.
+
+    The evaluator isn't a fixed instrument. It's another model with its own variance.
+  </Accordion>
+</AccordionGroup>
+
+## Where does that leave us
+
+I started this project thinking I could measure "good," and I ended up with three reasons why that's harder than it sounds: my rubric encodes my assumptions, my assumptions have blind spots I can't see, and the evaluator applying my rubric isn't even consistent with itself.
+
+<Note>
+  The models didn't fail. They answered different questions — questions I never asked. What kind of beginner? Learning toward what? Building on which foundation? The evaluation couldn't catch the mismatch because I never gave it the one input that would have mattered: who is this for, and what do they already understand?
+</Note>
+
+The tool is still useful. Running the same prompt across multiple models and reading the outputs side-by-side surfaces differences that a single-model workflow would hide. The rubric scoring gives you a place to start a conversation, not a place to end one.
+
+The harder work is deciding who you're writing for before you write a word — and that's a question no rubric can answer for you.

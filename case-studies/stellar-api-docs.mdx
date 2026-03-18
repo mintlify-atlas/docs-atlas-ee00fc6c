@@ -1,0 +1,185 @@
+---
+title: "Stellar API Documentation"
+description: "Building modular OpenAPI specifications for the Stellar Development Foundation."
+---
+
+<Info>
+  This work was completed during my time at the Stellar Development Foundation in 2022–2023.
+</Info>
+
+Stellar's API documentation kept falling out of sync with their code. I was brought in to read the codebase, work with the engineering team, and create the OpenAPI spec files that now feed directly into their doc generator — so when the spec changes, the website updates automatically.
+
+<CardGroup cols={2}>
+  <Card title="50+ parameters" icon="sliders">
+    Shared parameter definitions, defined once and referenced across every endpoint.
+  </Card>
+  <Card title="30+ schemas" icon="database">
+    Reusable schema objects covering accounts, transactions, ledgers, and more.
+  </Card>
+  <Card title="40+ endpoints" icon="code">
+    Full coverage across both the Horizon API and the Anchor Platform.
+  </Card>
+  <Card title="30+ examples" icon="file-code">
+    Concrete request and response examples wired directly into endpoint definitions.
+  </Card>
+</CardGroup>
+
+## Context
+
+**Stellar** is a decentralized payment network built for fast, low-cost cross-border transactions.
+
+**Horizon** is Stellar's REST API — the primary interface for querying accounts, submitting transactions, and streaming ledger data. **The Anchor Platform** handles the bridge between Stellar and traditional finance, managing KYC, deposits, withdrawals, and compliance.
+
+Both APIs serve developers building on Stellar. Both needed documentation that could scale.
+
+## The approach
+
+There was no existing spec to work from — everything had to be derived.
+
+<Steps>
+  <Step title="Read the codebase">
+    The starting point was understanding what the APIs actually did, not what the old docs claimed. That meant reading source code, tracing request handlers, and mapping response shapes directly.
+  </Step>
+  <Step title="Review existing documentation">
+    The existing docs were a useful signal — not for accuracy, but for identifying gaps, inconsistencies, and areas where engineers had clearly stopped maintaining them.
+  </Step>
+  <Step title="Interview senior engineers">
+    Codebase reading can only go so far. I sat down with engineers to clarify intent, surface edge cases, and document behavior that had never been written down.
+  </Step>
+  <Step title="Design a modular file structure">
+    Rather than a single monolithic spec file, I designed a structure where components are defined once and referenced everywhere using `$ref`. Parameters, schemas, and examples all live in dedicated files.
+  </Step>
+  <Step title="Write and validate the spec">
+    With structure in place, I wrote the spec incrementally — parameters first, then schemas, then endpoints — validating against the OpenAPI 3.0 standard at each stage.
+  </Step>
+</Steps>
+
+## File structure
+
+The spec is split across a set of purpose-specific files. Nothing is defined more than once.
+
+```plaintext
+openapi/
+├── openapi.yaml              # Root document with $ref paths
+├── parameters.yaml           # Shared parameters: CursorParam, LimitParam, OrderParam, ...
+├── schemas/
+│   ├── Account.yaml
+│   ├── Transaction.yaml
+│   └── ...
+├── endpoints/
+│   ├── accounts.yaml
+│   ├── transactions.yaml
+│   └── ...
+└── examples/
+    ├── AccountResponse.yaml
+    └── ...
+```
+
+<Tip>
+  The key insight is reusability through `$ref`. Instead of repeating parameter definitions across dozens of endpoints, define them once in `parameters.yaml` and reference them everywhere. Change one definition, update every endpoint that uses it.
+</Tip>
+
+## How it works
+
+### Shared parameters
+
+Pagination and ordering parameters are defined once and shared across all list endpoints.
+
+```yaml parameters.yaml
+CursorParam:
+  name: cursor
+  in: query
+  description: A pagination cursor value returned from a previous query.
+  required: false
+  schema:
+    type: string
+
+LimitParam:
+  name: limit
+  in: query
+  description: The maximum number of records to return.
+  required: false
+  schema:
+    type: integer
+    minimum: 1
+    maximum: 200
+
+OrderParam:
+  name: order
+  in: query
+  description: The order in which to return rows, "asc" or "desc".
+  required: false
+  schema:
+    type: string
+    enum: [asc, desc]
+
+AccountIdParam:
+  name: account_id
+  in: path
+  required: true
+  schema:
+    type: string
+```
+
+### Endpoint definitions
+
+Endpoints compose shared components via `$ref` rather than repeating definitions inline.
+
+```yaml endpoints/accounts.yaml
+/accounts:
+  get:
+    operationId: ListAccounts
+    summary: List all Accounts
+    parameters:
+      - $ref: '../parameters.yaml#/CursorParam'
+      - $ref: '../parameters.yaml#/LimitParam'
+      - $ref: '../parameters.yaml#/OrderParam'
+    responses:
+      '200':
+        description: Success
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '../schemas/Links.yaml'
+                - $ref: '../schemas/Account.yaml'
+            examples:
+              ListAccountsResponse:
+                $ref: '../examples/AccountResponse.yaml'
+```
+
+## The outcome
+
+The specifications now power the Stellar API documentation, auto-generated through Docusaurus. The full spec lives in the `stellar-docs` repo on GitHub.
+
+| Property | Result |
+|---|---|
+| Single source of truth | The spec is the contract — docs and implementation stay in sync |
+| Update once, propagate everywhere | Change `CursorParam` and every endpoint using it reflects the change |
+| Docs that can't drift | Generated from the spec, so always in sync with what the API actually does |
+| Reduced maintenance burden | Adding a new endpoint means composing existing components, not rewriting definitions |
+
+## Beyond documentation
+
+A formal OpenAPI definition isn't just documentation — it's infrastructure.
+
+<CardGroup cols={2}>
+  <Card title="SDK generation" icon="wand-magic-sparkles">
+    Auto-generate client libraries in Python, JavaScript, Go, and other languages directly from the spec.
+  </Card>
+  <Card title="Mock servers" icon="server">
+    Spin up fake APIs for frontend development before the backend is ready.
+  </Card>
+  <Card title="Contract testing" icon="check-double">
+    Validate that the live implementation matches what the spec promises.
+  </Card>
+  <Card title="Postman collections" icon="paper-plane">
+    Auto-import all endpoints for manual testing without writing collection entries by hand.
+  </Card>
+  <Card title="Changelog diffing" icon="code-compare">
+    Compare spec versions to see exactly what changed between releases.
+  </Card>
+  <Card title="Multi-team alignment" icon="users">
+    A shared spec gives frontend, backend, and docs teams a single reference to work from.
+  </Card>
+</CardGroup>

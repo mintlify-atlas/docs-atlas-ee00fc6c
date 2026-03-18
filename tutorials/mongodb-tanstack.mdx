@@ -1,0 +1,163 @@
+---
+title: "MongoDB x TanStack"
+description: "A full-stack integration guide for MongoDB's official documentation, connecting TanStack Start to a MongoDB Atlas cluster."
+---
+
+<Note>
+  MongoDB was expanding their docs to cover frameworks with active, growing communities. TanStack Start made the list. I picked up the assignment, researched the framework, and built a sample application that connects TanStack Start to an Atlas cluster. Then I documented the whole process. It went through MongoDB's review process and shipped as part of their official driver documentation. What follows is an excerpt showing the structure and approach.
+</Note>
+
+## Overview
+
+This guide demonstrates how to build a modern web application with TanStack Start and MongoDB. TanStack Start is a full-stack framework that integrates frontend and backend development by using React and popular libraries like TanStack Router and TanStack Query.
+
+The application is organized into four layers:
+
+| Layer | Role |
+|---|---|
+| **Database** | MongoDB stores and retrieves data |
+| **Server** | TanStack Start provides API endpoints and logic to connect the frontend to MongoDB |
+| **Data management** | TanStack Query manages server-side state on the frontend |
+| **Presentation** | React implements the UI using TanStack Query data |
+
+### Why MongoDB with TanStack Start?
+
+MongoDB's document model stores data as JSON-like documents. This aligns naturally with TanStack Start's React components and TypeScript interfaces. TanStack Query handles the data layer by caching MongoDB responses, managing loading states, and synchronizing data across components.
+
+This combination works well for:
+
+- Flexible data structures that can evolve over time
+- Real-time data updates with minimal client-side code
+- Type safety from database to UI
+- Efficient caching and background data synchronization
+
+## Tutorial excerpt
+
+The following excerpt covers the introduction, architecture overview, and project setup. The full tutorial continues with database connections, server functions, React components, and running the application.
+
+### Prerequisites
+
+| Prerequisite | Requirement |
+|---|---|
+| **Node.js** | Version 20 or later |
+| **Code editor** | Visual Studio Code (or editor of your choice) |
+| **Terminal** | macOS: Terminal or similar app. Windows: PowerShell |
+
+<Steps>
+  <Step title="Create a MongoDB Atlas cluster">
+    MongoDB Atlas is a fully managed cloud database service. Create a free cluster — no credit card required.
+
+    The `sample_restaurants` database is used throughout this tutorial.
+  </Step>
+
+  <Step title="Create the project skeleton">
+    Run the TanStack Start project generator:
+
+    ```bash
+    npm create @tanstack/start@latest
+    ```
+
+    When the installation wizard prompts you, use these options:
+
+    | Prompt | Input |
+    |---|---|
+    | Project name? | Your desired project name |
+    | Use Tailwind CSS? | `Y` |
+    | Select toolchain | None (default) |
+    | Deployment adapter | Nitro (default) |
+    | Add-ons? | None |
+    | Examples? | None |
+  </Step>
+
+  <Step title="Configure Vite for MongoDB compatibility">
+    TanStack Start uses Vite. Configure it to exclude `mongodb-client-encryption` from optimization:
+
+    ```typescript vite.config.ts
+    import { defineConfig } from 'vite'
+    import { devtools } from '@tanstack/devtools-vite'
+    import { tanstackStart } from '@tanstack/react-start/plugin/vite'
+    import viteReact from '@vitejs/plugin-react'
+    import viteTsConfigPaths from 'vite-tsconfig-paths'
+    import tailwindcss from '@tailwindcss/vite'
+    import { nitro } from 'nitro/vite'
+
+    const config = defineConfig({
+      plugins: [
+        devtools(),
+        nitro(),
+        viteTsConfigPaths({
+          projects: ['./tsconfig.json'],
+        }),
+        tailwindcss(),
+        tanstackStart(),
+        viteReact(),
+      ],
+      optimizeDeps: {
+        exclude: ['mongodb-client-encryption'],
+      },
+      ssr: {
+        external: ['mongodb-client-encryption'],
+      },
+    })
+
+    export default config
+    ```
+  </Step>
+
+  <Step title="Install MongoDB and TanStack Query">
+    ```bash
+    npm install mongodb @tanstack/react-query
+    ```
+
+    <Note>
+      This installs the official MongoDB Node.js driver and TanStack Query for managing server state on the client.
+    </Note>
+  </Step>
+</Steps>
+
+## Retrospective
+
+Writing for a company's official documentation means working within their structure. Here's what I'd do differently if I were writing this guide from scratch.
+
+<AccordionGroup>
+  <Accordion title="1. Self-contained content">
+    The tutorial links out to separate pages for common setup steps. Each click takes the reader away from their task and increases cognitive load.
+
+    I prefer docs that keep readers in flow. When a prerequisite is short, inline it. When it's long, summarize it and link to the full reference — but don't require the reader to leave to make progress.
+  </Accordion>
+
+  <Accordion title="2. Componentization">
+    Content like the MongoDB connection string appears in multiple places. The current approach duplicates it across pages.
+
+    A better model: create shared components like `<ConnectionString />` that live in one place. Update it once, it updates everywhere. Readers get inline content; writers maintain a single source of truth.
+  </Accordion>
+
+  <Accordion title="3. Clearer product positioning">
+    TanStack Start is a nascent framework. Without a dedicated "What is TanStack Start?" section, readers who already know Next.js or Remix have no anchor for understanding where TanStack Start fits in the ecosystem and why they might choose it.
+  </Accordion>
+
+  <Accordion title="4. Shorter feedback loop">
+    The current guide requires writing the entire application before running `npm run dev` a single time.
+
+    A better structure gets the server running first — a "Hello World" moment — then layers in the database connection. Each step should have a visible payoff so the reader knows they're on track before moving forward.
+  </Accordion>
+
+  <Accordion title="5. Architecture diagram">
+    For developers new to server functions, the boundary between client and server can be invisible. An architecture diagram would make the RPC layer concrete:
+
+    | Layer | Transport | Destination |
+    |---|---|---|
+    | Client browser | `useQuery` hooks | TanStack Query cache |
+    | TanStack Query cache | RPC network call | TanStack Start server functions |
+    | TanStack Start server functions | Node.js driver | MongoDB Atlas |
+  </Accordion>
+</AccordionGroup>
+
+<CardGroup cols={2}>
+  <Card title="Full tutorial" icon="database" href="https://www.mongodb.com/docs/drivers/node-frameworks/tanstack/">
+    Read the complete guide in MongoDB's official documentation.
+  </Card>
+  <Card title="TanStack Start docs" icon="bolt" href="https://tanstack.com/start/latest">
+    TanStack Start framework reference.
+  </Card>
+</CardGroup>

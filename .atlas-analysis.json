@@ -1,0 +1,78 @@
+{
+  "projectType": "general",
+  "projectName": "Taylor McNeil",
+  "projectDescription": "A docs-as-portfolio site for Taylor McNeil, a Developer Experience Engineer, treating her career as an API—structured, versioned, and built to help developers (and hiring managers) get unstuck fast.",
+  "theme": "willow",
+  "primaryColor": "#fc5f17",
+  "lightColor": "#fcc7b1",
+  "darkColor": null,
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Portfolio",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": ["introduction", "quickstart"]
+          },
+          {
+            "group": "Career History",
+            "pages": ["changelog"]
+          },
+          {
+            "group": "Case Studies",
+            "pages": [
+              "case-studies/stellar-api-docs",
+              "case-studies/on-good-tutorials"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": ["guides/hmac-authentication"]
+          },
+          {
+            "group": "Tutorials",
+            "pages": [
+              "tutorials/java-game-dev",
+              "tutorials/mongodb-tanstack"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Active Builds",
+        "groups": [
+          {
+            "group": "Projects",
+            "pages": [
+              "aampersand/overview",
+              "side-projects/the-longview"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "API-metaphor portfolio treating the candidate as a versioned dependency",
+    "Career changelog with version-tagged role history (v1.0.0–v4.0.0)",
+    "Technical case studies: Stellar OpenAPI spec, tutorial methodology",
+    "Full-length guides and tutorials (HMAC auth, Java game dev, MongoDB + TanStack)",
+    "Interactive TicTacToe component embedded in tutorial",
+    "Three-panel layout mimicking API reference tools (sidebar, content, response panel)",
+    "Light/dark theme toggle with custom design system",
+    "Active build log for in-progress projects (&mpersand, DevRel Playground)"
+  ],
+  "publicApiSurface": [
+    "GET /taylor-mcneil/readme — Introduction page",
+    "GET /quickstart — Candidate config and test output",
+    "GET /changelog — Career timeline with versioned roles",
+    "GET /case-studies/stellar-api-docs — OpenAPI documentation case study",
+    "GET /case-studies/on-good-tutorials — Tutorial methodology case study",
+    "GET /guides/hmac-authentication — HMAC auth developer guide",
+    "GET /tutorials/java-game-dev — Java Tic Tac Toe tutorial with interactive demo",
+    "GET /tutorials/mongodb-tanstack — MongoDB + TanStack tutorial",
+    "GET /aampersand — Active build: fiction-writing creative workspace",
+    "GET /side-projects/the-longview — Side project log"
+  ]
+}
